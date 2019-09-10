@@ -12,8 +12,8 @@ from os import remove
 from bs4 import BeautifulSoup
 import xlwings as xw
 
-downloads_folder = "C:/Users/END Team/Desktop/New folder/Dropbox (ISS LLC)/PPA/Brandon/LMP Evaluation/ERCOT/ERCOT Temp/"
-save_folder = "C:/Users/END Team/Desktop/New folder/Dropbox (ISS LLC)/PPA/Brandon/LMP Evaluation/ERCOT/"
+downloads_folder = "path/to/downloads_folder"
+save_folder = "path/to/save_folder"
 ercot_site_address = "http://mis.ercot.com/misapp/GetReports.do?reportTypeId=12301&reportTitle=Settlement%20Point%20Prices%20at%20Resource%20Nodes,%20Hubs%20and%20Load%20Zones&showHTMLView=&mimicKey"
 
 def generate_documents_list(site_address):
@@ -205,7 +205,7 @@ def main():
                 csv_zip_details = download_csv_zip(most_recent_download, list_of_documents, list_of_links)
             else:
                 pass
-                
+
         time.sleep(900)
 
 main()
