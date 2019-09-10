@@ -9,8 +9,8 @@ from zipfile import ZipFile as zf
 from io import TextIOWrapper
 from os import remove
 
-from bs4 import BeautifulSoup
 import xlwings as xw
+from bs4 import BeautifulSoup
 
 downloads_folder = "path/to/downloads_folder"
 save_folder = "path/to/save_folder"
