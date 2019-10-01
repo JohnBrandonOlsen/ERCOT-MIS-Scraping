@@ -9,11 +9,11 @@ from zipfile import ZipFile as zf
 from io import TextIOWrapper
 from os import remove
 
-import xlwings as xw
 from bs4 import BeautifulSoup
+import xlwings as xw
 
-downloads_folder = "path/to/downloads_folder"
-save_folder = "path/to/save_folder"
+downloads_folder = "/path/to/downloads_folder"
+save_folder = "/path/to/save_folder"
 ercot_site_address = "http://mis.ercot.com/misapp/GetReports.do?reportTypeId=12301&reportTitle=Settlement%20Point%20Prices%20at%20Resource%20Nodes,%20Hubs%20and%20Load%20Zones&showHTMLView=&mimicKey"
 
 def generate_documents_list(site_address):
@@ -31,12 +31,12 @@ def generate_documents_list(site_address):
 
 def initial_most_recent_download(top_document):
     try:
-        last_save = open("testSPP.txt", "r")
+        last_save = open("lastSPP.txt", "r")
         most_recent_download = last_save.read()
         last_save.close()
     except:
         print("No previous save file exists! Creating new file.")
-        last_save = open("testSPP.txt", "w")
+        last_save = open("lastSPP.txt", "w")
         last_save.write(top_document)
         last_save.close()
         most_recent_download = top_document
@@ -51,6 +51,8 @@ def find_document_iterable(most_recent_download, list_of_documents):
     while int(temp_download) != int(most_recent_download):
         document_iterable = document_iterable + 2   #Because the page listsl csv and xml documents, needs to cycle two at a time
         temp_download = list_of_documents[document_iterable].text[62:70] + list_of_documents[document_iterable].text[71:75]
+        if 'retry' in temp_download:
+            temp_download = list_of_documents[document_iterable].text[68:76] + list_of_documents[document_iterable].text[77:81]
     if document_iterable != 0:
         document_iterable -= 2
     else:
@@ -64,15 +66,18 @@ def download_csv_zip(most_recent_download, list_of_documents, list_of_links):
     print("Downloading " + list_of_documents[current_document_position].text[64:] + " at: " + time.ctime(), end='\r')
     webbrowser.open('http://mis.ercot.com' + str(temp_download))    #Downloads next SPP
 
-    most_recent_download = list_of_documents[current_document_position].text[62:70] + list_of_documents[current_document_position].text[71:75]
+    if "retry" in list_of_documents[current_document_position].text:
+        most_recent_download = list_of_documents[current_document_position].text[68:76] + list_of_documents[current_document_position].text[77:81]
+    else:
+        most_recent_download = list_of_documents[current_document_position].text[62:70] + list_of_documents[current_document_position].text[71:75]
     update_last_save(most_recent_download)
 
     return(most_recent_download, current_document_position)
 
 
 def update_last_save(most_recent_download):
-        last_save = open("testSPP.txt", "w")
-        last_save.write(most_recent_download)    #Update testSPP with new most_recent_download variable
+        last_save = open("lastSPP.txt", "w")
+        last_save.write(most_recent_download)    #Update lastSPP with new most_recent_download variable
         last_save.close()
 
 def verify_download(zip_filename):
@@ -162,25 +167,33 @@ def find_hour_interval(zip):
                     "2100", "2115", "2130", "2145", "2200", "2215", "2230",
                     "2245", "2300", "2315", "2330", "2345", "0000"
                     ]
-
-    position = hour_intervals.index(zip[71:75])
+    if "retry" in zip:
+        position = hour_intervals.index(zip[77:81])
+    else:
+        position = hour_intervals.index(zip[71:75])
 
     return position
 
 def find_most_recent_0000(most_recent_download, list_of_documents, current_document_position, zip_filename):
     current_document_position = current_document_position + ((find_hour_interval(zip_filename) + 1) * 2)
-    most_recent_download = list_of_documents[current_document_position].text[62:70] + list_of_documents[current_document_position].text[71:75]
+    if "retry" in list_of_documents[current_document_position].text:
+        most_recent_download = list_of_documents[current_document_position].text[68:76] + list_of_documents[current_document_position].text[77:81]
+    else:
+        most_recent_download = list_of_documents[current_document_position].text[62:70] + list_of_documents[current_document_position].text[71:75]
     return most_recent_download
 
 def main():
     while True:
         ercot_lists = generate_documents_list(ercot_site_address)
-        list_of_documents = ercot_lists[0]
-        list_of_links = ercot_lists[1]
-        top_document = list_of_documents[0].text[62:70] + list_of_documents[0].text[71:75]
-        most_recent_download = initial_most_recent_download(top_document)
+        try:
+            list_of_documents = ercot_lists[0]
+            list_of_links = ercot_lists[1]
+            top_document = list_of_documents[0].text[62:70] + list_of_documents[0].text[71:75]
+            most_recent_download = initial_most_recent_download(top_document)
 
-        csv_zip_details = download_csv_zip(most_recent_download, list_of_documents, list_of_links)
+            csv_zip_details = download_csv_zip(most_recent_download, list_of_documents, list_of_links)
+        except:
+            pass
 
         while int(top_document) != int(most_recent_download):
             most_recent_download = csv_zip_details[0]
@@ -203,8 +216,6 @@ def main():
                     remove(downloads_folder + zip_filename)
             if most_recent_download != top_document:
                 csv_zip_details = download_csv_zip(most_recent_download, list_of_documents, list_of_links)
-            else:
-                pass
 
         time.sleep(900)
 
